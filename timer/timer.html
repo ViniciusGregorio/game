@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>TIMER INSANO</title>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: #00fff7;
+  font-family: monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#timer {
+  font-size: 100px;
+  text-shadow: 0 0 20px #00fff7, 0 0 40px #ff00ff;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+input, button {
+  margin-top: 10px;
+  padding: 12px;
+  font-size: 18px;
+  background: black;
+  color: #00fff7;
+  border: 2px solid #00fff7;
+}
+
+button:hover {
+  background: #00fff7;
+  color: black;
+}
+
+.glitch {
+  position: absolute;
+  font-size: 120px;
+  color: red;
+  animation: glitch 0.2s infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translate(2px, -2px); }
+  25% { transform: translate(-2px, 2px); }
+  50% { transform: translate(2px, 2px); }
+  75% { transform: translate(-2px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+</style>
+</head>
+
+<body>
+
+<div id="timer">00:00</div>
+
+<input type="number" id="minutes" placeholder="Minutos">
+<button onclick="startTimer()">INICIAR MISSÃO</button>
+
+<script>
+let interval;
+
+function startTimer() {
+  clearInterval(interval);
+  let minutes = document.getElementById("minutes").value;
+  let time = minutes * 60;
+
+  interval = setInterval(() => {
+    let min = Math.floor(time / 60);
+    let sec = time % 60;
+
+    document.getElementById("timer").innerText =
+      String(min).padStart(2, '0') + ":" +
+      String(sec).padStart(2, '0');
+
+    time--;
+
+    if (time < 0) {
+      clearInterval(interval);
+      insaneAlarm();
+    }
+  }, 1000);
+}
+
+function insaneAlarm() {
+
+  // VOZ
+  let msg = new SpeechSynthesisUtterance("ATENÇÃO. TEMPO ESGOTADO.");
+  msg.rate = 1.2;
+  msg.pitch = 0.6;
+  speechSynthesis.speak(msg);
+
+  // SIRENE + GLITCH + FLASH
+  let count = 0;
+
+  let alarmInterval = setInterval(() => {
+
+    // FLASH MALUCO
+    document.body.style.background =
+      `hsl(${Math.random()*360}, 100%, 50%)`;
+
+    // SOM GERADO (beep louco)
+    let ctx = new (window.AudioContext || window.webkitAudioContext)();
+    let osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(300 + Math.random()*1000, ctx.currentTime);
+    osc.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => osc.stop(), 100);
+
+    // GLITCH TEXTO
+    let glitch = document.createElement("div");
+    glitch.className = "glitch";
+    glitch.innerText = "TEMPO ESGOTADO";
+    glitch.style.top = Math.random() * window.innerHeight + "px";
+    glitch.style.left = Math.random() * window.innerWidth + "px";
+    document.body.appendChild(glitch);
+
+    setTimeout(() => glitch.remove(), 200);
+
+    count++;
+
+    if (count > 40) {
+      clearInterval(alarmInterval);
+      document.body.style.background = "black";
+    }
+
+  }, 150);
+}
+</script>
+
+</body>
+</html>

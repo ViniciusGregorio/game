@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Simba 21.0 Ultra Turbo Universe</title>
+<style>
+body,html{margin:0;padding:0;overflow:hidden;font-family:sans-serif;background:black;color:white;}
+#menu,#gameover{position:absolute;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#menu button,#gameover button{padding:15px 30px;margin:10px;font-size:24px;cursor:pointer;border-radius:10px;border:none;background:#ffcc00;color:black;font-weight:bold;}
+#game{position:relative;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(to top,#00111a,#220033);display:none;}
+#simba{position:absolute;bottom:50px;left:50px;font-size:50px;transition:bottom 0.03s,left 0.03s;}
+.entity{position:absolute;font-size:40px;transition:filter 0.1s;}
+.popup{position:absolute;background:rgba(0,0,0,0.7);color:#fff;padding:5px 10px;border-radius:5px;font-size:16px;animation:fadeOut 1.5s forwards;}
+@keyframes fadeOut{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-40px);}}
+#scoreboard{position:absolute;top:10px;left:10px;font-size:24px;}
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1 style="font-size:48px;color:#ffcc00;">Simba 21.0 Ultra Turbo</h1>
+  <p>Controles: W/Seta↑ = Voar | ←/→ = Mover | Space = Atirar</p>
+  <button id="startBtn">Iniciar Jogo</button>
+  <button id="exitBtn">Encerrar</button>
+</div>
+
+<div id="game">
+  <div id="simba">🦁🚀</div>
+  <div id="scoreboard">Score: 0</div>
+</div>
+
+<div id="gameover" style="display:none;">
+  <h1 style="font-size:48px;color:#ff3300;">Jogo Encerrado</h1>
+  <p id="finalScore" style="font-size:24px;"></p>
+  <button id="restartBtn">Jogar Novamente</button>
+</div>
+
+<script>
+const menu=document.getElementById('menu');
+const game=document.getElementById('game');
+const gameover=document.getElementById('gameover');
+const restartBtn=document.getElementById('restartBtn');
+const startBtn=document.getElementById('startBtn');
+const exitBtn=document.getElementById('exitBtn');
+const simba=document.getElementById('simba');
+const scoreboard=document.getElementById('scoreboard');
+const finalScore=document.getElementById('finalScore');
+
+let simbaBottom=50,simbaLeft=50,score=0;
+let bullets=[],entities=[],intervals=[],gameRunning=false;
+
+// Tesouros e powerups
+const treasures = [
+  "∫ x² dx = x³/3 + C",
+  "E = mc²",
+  "Filipenses 4:13 – Posso todas as coisas naquele que me fortalece 💪",
+  "💡 Dica: Faça pausas curtas de estudo",
+  "x = (-b ± √(b²-4ac))/2a",
+  "Não desista, tente de novo!",
+  "Fórmula de área: A = πr²",
+  "Dinossauros são incríveis! 🦖",
+  "Provérbios 3:5 – Confia no Senhor de todo o teu coração 🙏",
+  "💡 Dica: Estude em blocos de 25 minutos",
+  "for(i=0;i<n;i++){ console.log(i); } – Loop básico em JS",
+  "Salmos 23:1 – O Senhor é meu pastor, nada me faltará 🐑",
+  "Fórmula de velocidade: v = d/t",
+  "💡 Dica: Revise o conteúdo antes de dormir",
+  "x² + y² = r² – Equação de um círculo",
+  "Mateus 6:33 – Buscai primeiro o Reino de Deus 🕊️",
+  "💡 Dica: Faça resumos curtos do que aprendeu",
+  "let soma = a + b; – Soma em JavaScript",
+  "Romanos 12:2 – Transformem-se pela renovação da mente 🌱",
+  "💡 Dica: Evite estudar por muitas horas seguidas",
+  "def multiplica(a,b): return a*b – Função Python",
+  "Salmos 119:105 – Lâmpada para os meus pés é a tua palavra 💡",
+  "Fórmula de área do triângulo: A = (b*h)/2",
+  "💡 Dica: Ensine o conteúdo a alguém para fixar",
+  "x = y² + 3y – Exemplo de função quadrática",
+  "Josué 1:9 – Seja forte e corajoso 💪",
+  "💡 Dica: Organize seu tempo em horários fixos",
+  "if(x % 2 == 0){ console.log('Par'); } – Verificar paridade",
+  "Isaías 40:31 – Os que esperam no Senhor renovarão suas forças ✨",
+  "💡 Dica: Faça pequenas pausas a cada 50 minutos",
+  "E = p*v – Equação de estado (gás ideal simplificado)",
+  "Filipenses 3:14 – Prossigo para o alvo pelo prêmio da vocação 💪",
+  "💡 Dica: Comece pelos tópicos mais difíceis primeiro",
+  "array.push(item) – Adiciona elemento a um array",
+  "Salmos 27:1 – O Senhor é a minha luz e salvação 🌟",
+  "💡 Dica: Refaça exercícios que errou",
+  "x³ + y³ = z³ – Exemplo de expressão cúbica",
+  "Provérbios 16:3 – Consagre ao Senhor tudo o que fizeres 🔑",
+  "💡 Dica: Use mapas mentais para organizar conceitos",
+  "try { ... } catch(e) { ... } – Tratamento de erros em JS",
+  "Salmos 34:4 – Busquei o Senhor, e Ele me respondeu ✨",
+  "💡 Dica: Faça pausas curtas de alongamento",
+  "Fórmula de juros simples: J = P * i * t",
+  "Hebreus 11:1 – A fé é a certeza daquilo que esperamos 🙏",
+  "💡 Dica: Use cartões de revisão (flashcards)",
+  "const PI = 3.14159; – Constante em JS",
+  "Isaías 41:10 – Não temas, pois estou contigo 💪",
+  "💡 Dica: Evite distrações do celular ao estudar",
+  "x = log(y) – Função logaritmo",
+  "Salmos 46:1 – Deus é nosso refúgio e fortaleza 🛡️",
+  "💡 Dica: Comece com exercícios pequenos antes dos complexos",
+  "f(x) = x² + 2x + 1 – Função quadrática",
+  "Romanos 8:28 – Todas as coisas cooperam para o bem 🌟",
+  "💡 Dica: Revise suas anotações no final do dia",
+  "for item in lista: print(item) – Iteração em Python",
+  "Filipenses 4:6 – Não andem ansiosos por coisa alguma 🙏",
+  "💡 Dica: Separe os tópicos que precisa reforçar",
+  "Área do quadrado: A = L²",
+  "Salmos 55:22 – Entrega o teu caminho ao Senhor 💪",
+  "💡 Dica: Mantenha o ambiente de estudo organizado",
+  "function dividir(a,b){ return a/b; } – Função JS",
+  "Provérbios 13:4 – O preguiçoso deseja e nada consegue 😴",
+  "💡 Dica: Use exercícios de repetição para fixar conceitos",
+  "x = sin(θ) – Função trigonométrica",
+  "Mateus 7:7 – Peçam, e lhes será dado 🙏",
+  "💡 Dica: Estude o mesmo assunto em sessões curtas",
+  "def area_circulo(r): return 3.14159*r**2 – Python",
+  "Salmos 119:11 – Guardo a tua palavra no coração 💡",
+  "💡 Dica: Leia o conteúdo em voz alta para memorizar",
+  "v = √(2*g*h) – Fórmula de queda livre",
+  "Hebreus 13:5 – Deus nunca te deixará nem te abandonará 💖",
+  "💡 Dica: Use cores diferentes para destacar conceitos importantes",
+  "x = e^y – Função exponencial",
+  "Provérbios 22:6 – Ensina a criança no caminho certo 👶",
+  "💡 Dica: Mantenha uma rotina de sono regular",
+  "let dobro = n*2; – Multiplicação simples em JS",
+  "Isaías 26:3 – Deus guarda em perfeita paz os que nele confiam 🕊️",
+  "💡 Dica: Resolva exercícios diariamente para fixar",
+  //
+  "x² - 4x + 4 = 0 – Equação quadrática fatorável",
+  "💡 Dica: Explique o conteúdo para você mesmo em voz alta",
+  "Filipenses 1:6 – Aquele que começou boa obra em você há de completá-la 💪",
+  "for (let key in objeto) { console.log(key); } – Iteração sobre objetos em JS",
+  "Salmos 37:5 – Entrega o teu caminho ao Senhor, confia nele 🌟",
+  "💡 Dica: Use listas de tarefas para organizar estudos",
+  "Fórmula de velocidade média: Vm = ΔS/Δt",
+  "Jeremias 29:11 – Eu sei os planos que tenho para você 💖",
+  "💡 Dica: Pratique programação todos os dias, mesmo pouco tempo",
+  "def fatorial(n): return 1 if n==0 else n*fatorial(n-1) – Função recursiva Python",
+  "Mateus 19:26 – Para Deus, todas as coisas são possíveis ✨",
+  "💡 Dica: Faça pausas de 5 minutos a cada hora de estudo",
+  "Área do trapézio: A = ((B+b)*h)/2",
+  "Salmos 46:10 – Aquietai-vos e sabei que eu sou Deus 🕊️",
+  "💡 Dica: Evite estudar apenas lendo, pratique exercícios",
+  "let quadrado = n**2; – Exponenciação em JS",
+  "Romanos 12:12 – Alegrem-se na esperança, sejam pacientes 🌟",
+  "💡 Dica: Use exercícios de revisão ativa",
+  "x = cos(θ) – Função trigonométrica cosseno",
+  "Provérbios 16:9 – O coração do homem planeja o seu caminho 💡",
+  "💡 Dica: Estude em ambientes silenciosos",
+  "def soma_lista(lista): return sum(lista) – Função Python",
+  "Salmos 34:18 – Perto está o Senhor dos que têm o coração quebrantado 💖",
+  "💡 Dica: Refaça provas antigas para treinar",
+  "fórmula de área do círculo: A = π * r²",
+  "Filipenses 3:13 – Esquecendo-me das coisas que ficam para trás 💪",
+  "💡 Dica: Comece o dia revisando o que estudou ontem",
+  "x = tan(θ) – Função trigonométrica tangente",
+  "Hebreus 11:6 – Sem fé é impossível agradar a Deus 🙏",
+  "💡 Dica: Use exercícios de programação gamificados para motivação",
+  "let media = (a+b+c)/3; – Média aritmética JS",
+  "Salmos 27:14 – Espera no Senhor, seja forte 💪",
+  "💡 Dica: Faça esquemas visuais de fórmulas e algoritmos",
+  "x = √(a² + b²) – Teorema de Pitágoras",
+  "Provérbios 3:6 – Reconhece-o em todos os teus caminhos 🌟",
+  "💡 Dica: Faça revisões semanais",
+  "def primo(n): return all(n%i!=0 for i in range(2,n)) – Checa se número é primo",
+  "Mateus 5:16 – Que a vossa luz brilhe diante dos homens ✨",
+  "💡 Dica: Evite multitarefas ao programar",
+  "Área do retângulo: A = b * h",
+  "Salmos 119:105 – Tua palavra é lâmpada para os meus pés 💡",
+  "💡 Dica: Estabeleça metas pequenas e alcançáveis",
+  "for i in range(0,10): print(i) – Loop Python",
+  "Isaías 41:13 – Eu te ajudarei, diz o Senhor 💪",
+  "💡 Dica: Use cores diferentes para destacar conceitos",
+  "x = log10(y) – Logaritmo base 10",
+  "Romanos 8:31 – Se Deus é por nós, quem será contra nós? 🌟",
+  "💡 Dica: Resolva problemas práticos de programação",
+  "def fibonacci(n): return n if n<=1 else fibonacci(n-1)+fibonacci(n-2) – Fibonacci Python",
+  "Salmos 37:4 – Deleita-te no Senhor 💖",
+  "💡 Dica: Faça exercícios antes de dormir para consolidar memórias",
+  "let dobro = n*2; – Multiplicação simples em JS",
+  "Provérbios 16:3 – Consagre ao Senhor tudo o que fizeres 🔑",
+  "💡 Dica: Leia documentação oficial ao estudar novas bibliotecas",
+  "x³ - 3x² + 2x – Exemplo de polinômio cúbico",
+  "Filipenses 4:19 – Meu Deus suprirá todas as necessidades 💪",
+  "💡 Dica: Evite estudar de barriga cheia",
+  "fórmula de área do losango: A = (D*d)/2",
+  "Salmos 23:4 – Ainda que eu ande pelo vale da sombra da morte 🐑",
+  "💡 Dica: Use resumos visuais para memorização",
+  "const raiz = Math.sqrt(25); – Raiz quadrada em JS",
+  "Mateus 6:34 – Não vos inquieteis com o amanhã ✨",
+  "💡 Dica: Faça pausas para água e alongamento",
+  "x = (y2 - y1)/(x2 - x1) – Declive de uma reta",
+  "Hebreus 13:8 – Jesus Cristo é o mesmo ontem, hoje e sempre 🙏",
+  "💡 Dica: Revise os exercícios que errou",
+  "def area_trapezio(B,b,h): return ((B+b)*h)/2 – Python",
+  "Salmos 46:1 – Deus é nosso refúgio e fortaleza 🛡️",
+  "💡 Dica: Estude sempre no mesmo local para criar hábito",
+  "x = e^(iθ) – Fórmula de Euler",
+  "Provérbios 1:5 – Ouvirá e aumentará seu conhecimento 📚",
+  "💡 Dica: Faça pequenas metas de estudo diárias",
+  "let area = Math.PI * r**2; – Área do círculo em JS",
+   "∫ x² dx = x³/3 + C",
+  "E = mc²",
+  "Philippians 4:13 – I can do all things through Christ who strengthens me 💪",
+  "💡 Tip: Take short study breaks",
+  "x = (-b ± √(b²-4ac))/2a",
+  "Don't give up, try again!",
+  "Area formula: A = πr²",
+  "Dinosaurs are amazing! 🦖",
+  "Proverbs 3:5 – Trust in the Lord with all your heart 🙏",
+  "💡 Tip: Study in 25-minute focused blocks",
+  "for(i=0;i<n;i++){ console.log(i); } – Basic loop in JS",
+  "Psalm 23:1 – The Lord is my shepherd; I shall not want 🐑",
+  "Velocity formula: v = d/t",
+  "💡 Tip: Review what you learned before sleeping",
+  "x² + y² = r² – Equation of a circle",
+  "Matthew 6:33 – Seek first the Kingdom of God 🕊️",
+  "💡 Tip: Make short summaries of what you learned",
+  "let sum = a + b; – Addition in JavaScript",
+  "Romans 12:2 – Be transformed by the renewing of your mind 🌱",
+  "💡 Tip: Avoid studying for too many hours straight",
+  "def multiply(a,b): return a*b – Python function",
+  "Psalm 119:105 – Your word is a lamp to my feet 💡",
+  "Triangle area formula: A = (b*h)/2",
+  "💡 Tip: Teach someone else to reinforce learning",
+  "x = y² + 3y – Quadratic function example",
+  "Joshua 1:9 – Be strong and courageous 💪",
+  "💡 Tip: Organize your time with fixed schedules",
+  "if(x % 2 == 0){ console.log('Even'); } – Check parity",
+  "Isaiah 40:31 – Those who hope in the Lord will renew their strength ✨",
+  "💡 Tip: Take small breaks every 50 minutes",
+  "E = p*v – Simplified ideal gas equation",
+  "Philippians 3:14 – I press on toward the goal for the prize 💪",
+  "💡 Tip: Start with the hardest topics first",
+  "array.push(item) – Add an element to an array",
+  "Psalm 27:1 – The Lord is my light and salvation 🌟",
+  "💡 Tip: Redo exercises you got wrong",
+  "x³ + y³ = z³ – Cubic expression example",
+  "Proverbs 16:3 – Commit your work to the Lord 🔑",
+  "💡 Tip: Use mind maps to organize concepts",
+  "try { ... } catch(e) { ... } – Error handling in JS",
+  "Psalm 34:4 – I sought the Lord, and He answered ✨",
+  "💡 Tip: Take short stretching breaks",
+  "Simple interest: I = P * r * t",
+  "Hebrews 11:1 – Faith is the assurance of things hoped for 🙏",
+  "💡 Tip: Use flashcards for revision",
+  "const PI = 3.14159; – Constant in JS",
+  "Isaiah 41:10 – Do not fear, for I am with you 💪",
+  "💡 Tip: Avoid phone distractions while studying",
+  "x = log(y) – Logarithmic function",
+  "Psalm 46:1 – God is our refuge and strength 🛡️",
+  "💡 Tip: Start with small exercises before tackling complex ones",
+  "f(x) = x² + 2x + 1 – Quadratic function",
+  "Romans 8:28 – All things work together for good 🌟",
+  "💡 Tip: Review your notes at the end of the day",
+  "for item in list: print(item) – Python iteration",
+  "Philippians 4:6 – Do not be anxious about anything 🙏",
+  "💡 Tip: Separate topics that need more reinforcement",
+  "Square area: A = L²",
+  "Psalm 55:22 – Cast your burden on the Lord 💪",
+  "💡 Tip: Keep your study space organized",
+  "function divide(a,b){ return a/b; } – JS function",
+  "Proverbs 13:4 – The lazy desire but get nothing 😴",
+  "💡 Tip: Use repetition exercises to reinforce learning",
+  "x = sin(θ) – Sine function",
+  "Matthew 7:7 – Ask, and it will be given to you 🙏",
+  "💡 Tip: Study the same subject in short sessions",
+  "def circle_area(r): return 3.14159*r**2 – Python",
+  "Psalm 119:11 – I have hidden your word in my heart 💡",
+  "💡 Tip: Read content out loud to memorize",
+  "v = √(2*g*h) – Free fall formula",
+  "Hebrews 13:5 – God will never leave you 💖",
+  "💡 Tip: Use different colors to highlight important concepts",
+  "x = e^y – Exponential function",
+  "Proverbs 22:6 – Train a child in the right way 👶",
+  "💡 Tip: Maintain a consistent sleep schedule",
+  "let double = n*2; – Simple multiplication in JS",
+  "Isaiah 26:3 – God keeps in perfect peace those who trust Him 🕊️",
+  "💡 Tip: Solve exercises daily to reinforce learning"
+];
+
+
+const powerups=["💨","🛡️","🔮","💡"];
+
+// Controle de teclas
+const keys={up:false,down:false,left:false,right:false,space:false};
+
+// Controle de cooldown
+let canShoot=true,shootDelay=200;
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='w'||e.key==='ArrowUp') keys.up=true;
+  if(e.key==='s'||e.key==='ArrowDown') keys.down=true;
+  if(e.key==='ArrowLeft') keys.left=true;
+  if(e.key==='ArrowRight') keys.right=true;
+  if(e.key===' ') keys.space=true;
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='w'||e.key==='ArrowUp') keys.up=false;
+  if(e.key==='s'||e.key==='ArrowDown') keys.down=false;
+  if(e.key==='ArrowLeft') keys.left=false;
+  if(e.key==='ArrowRight') keys.right=false;
+  if(e.key===' ') keys.space=false;
+});
+
+// Funções de movimento
+function move(val){simbaLeft+=val;if(simbaLeft<0) simbaLeft=0;if(simbaLeft>game.offsetWidth-50) simbaLeft=game.offsetWidth-50;simba.style.left=simbaLeft+'px';}
+function fly(val){simbaBottom+=val;if(simbaBottom<0) simbaBottom=0;if(simbaBottom>game.offsetHeight-50) simbaBottom=game.offsetHeight-50;simba.style.bottom=simbaBottom+'px';}
+
+// Função de tiro
+function shoot(){
+  if(!canShoot || !gameRunning) return;
+  canShoot=false;
+  const bullet=document.createElement('div');
+  bullet.classList.add('entity'); bullet.textContent='⚡';
+  bullet.style.left=simbaLeft+50+'px'; bullet.style.bottom=simbaBottom+20+'px';
+  game.appendChild(bullet); bullets.push(bullet);
+
+  let intv=setInterval(()=>{
+    let left=parseInt(bullet.style.left);
+    if(left>game.offsetWidth){ clearInterval(intv); game.removeChild(bullet); bullets=bullets.filter(b=>b!==bullet);}
+    else{ bullet.style.left=(left+15)+'px'; checkBulletCollision(bullet,intv);}
+  },20);
+
+  setTimeout(()=>{canShoot=true;},shootDelay);
+}
+
+// Spawn de entidades
+function spawnEntity(){
+  if(!gameRunning) return;
+  const e=document.createElement('div'); e.classList.add('entity');
+  let type=Math.random()<0.6?'obstacle':'treasure'; 
+  e.dataset.type=type;
+  e.style.left=game.offsetWidth+'px'; e.style.bottom=(50+Math.random()*200)+'px';
+  if(type==='obstacle') e.textContent=['🌵','🦖','☄️','🛰️'][Math.floor(Math.random()*4)];
+  else {
+    e.textContent=Math.random()<0.3?powerups[Math.floor(Math.random()*powerups.length)]:treasures[Math.floor(Math.random()*treasures.length)];
+  }
+  game.appendChild(e); entities.push(e);
+
+  let speed=3+Math.random()*2;
+  let moveInt=setInterval(()=>{
+    if(!gameRunning){clearInterval(moveInt); return;}
+    let left=parseInt(e.style.left);
+    if(left<-50){ clearInterval(moveInt); game.removeChild(e); entities=entities.filter(en=>en!==e);}
+    else { e.style.left=(left-speed)+'px'; detectProximity(e); checkCollision(e,moveInt);}
+  },20); intervals.push(moveInt);
+}
+
+// Sensores de proximidade
+function detectProximity(entity){
+  let simbaRect=simba.getBoundingClientRect(), entRect=entity.getBoundingClientRect();
+  let dx=Math.abs((simbaRect.left+simbaRect.right)/2-(entRect.left+entRect.right)/2);
+  if(dx<100) entity.style.filter='brightness(1.5)'; else entity.style.filter='brightness(1)';
+}
+
+// Colisões
+function checkCollision(entity,intv){
+  let simbaRect=simba.getBoundingClientRect(), entRect=entity.getBoundingClientRect();
+  if(!(simbaRect.right<entRect.left || simbaRect.left>entRect.right || simbaRect.bottom<entRect.top || simbaRect.top>entRect.bottom)){
+    if(entity.dataset.type==='obstacle') showPopup('💥 Cuidado!');
+    else if(powerups.includes(entity.textContent)) activatePowerup(entity.textContent);
+    else { score++; showPopup('🎉 Tesouro: '+entity.textContent); maybeMiniQuiz(); }
+    scoreboard.textContent='Score: '+score;
+    clearInterval(intv); game.removeChild(entity); entities=entities.filter(en=>en!==entity);
+  }
+}
+
+// Colisão tiro
+function checkBulletCollision(bullet,intv){
+  entities.forEach(e=>{
+    if(e.dataset.type && e!==bullet){
+      let bRect=bullet.getBoundingClientRect(), eRect=e.getBoundingClientRect();
+      if(!(bRect.right<eRect.left || bRect.left>eRect.right || bRect.bottom<eRect.top || bRect.top>eRect.bottom)){
+        if(e.dataset.type==='obstacle') showPopup('💥 Obstáculo destruído!');
+        else if(powerups.includes(e.textContent)) activatePowerup(e.textContent);
+        else { score++; showPopup('🎯 Tesouro coletado!'); maybeMiniQuiz(); }
+        scoreboard.textContent='Score: '+score;
+        clearInterval(intv); game.removeChild(bullet); bullets=bullets.filter(b=>b!==bullet);
+        if(e.parentNode) game.removeChild(e); entities=entities.filter(en=>en!==e);
+      }
+    }
+  });
+}
+
+// Popups
+function showPopup(text){
+  const p=document.createElement('div'); p.classList.add('popup');
+  p.style.left=(50+Math.random()*200)+'px'; p.style.bottom=(100+Math.random()*150)+'px'; p.textContent=text;
+  game.appendChild(p); setTimeout(()=>game.removeChild(p),1500);
+}
+
+// Mini-quizzes
+function maybeMiniQuiz(){
+  if(Math.random()<0.2){
+    const ans=prompt("Mini-quiz! Qual nome do pai de Sansão?");
+    if(ans=="Manoah"){score+=2; showPopup('✔ Correto! +2 pontos'); scoreboard.textContent='Score: '+score;}
+    else showPopup('❌ Dica: 2+2 = 4');
+  }
+}
+
+// Powerups
+function activatePowerup(p){
+  if(p==='💨'){ showPopup('🚀 Turbo Ativado!'); turboMode(5000);}
+  if(p==='🛡️'){ showPopup('🛡️ Escudo Ativado!'); shieldMode(5000);}
+  if(p==='🔮'){ showPopup('✨ Pontos x2!'); doubleScoreMode(5000);}
+  if(p==='💡'){ showPopup('💡 Dica de estudo!'); }
+}
+
+function turboMode(ms){ let speedBoost=15; let origFly=fly; fly=(val)=>{origFly(val*2);} ; setTimeout(()=>{fly=(val)=>{simbaBottom+=val;if(simbaBottom<0) simbaBottom=0;if(simbaBottom>game.offsetHeight-50) simbaBottom=game.offsetHeight-50;simba.style.bottom=simbaBottom+'px';}},ms);}
+function shieldMode(ms){ /* Proteção de obstáculos: pode implementar efeito visual */ setTimeout(()=>{},ms);}
+function doubleScoreMode(ms){ let origCheck=checkCollision; checkCollision=(entity,intv)=>{origCheck(entity,intv); score*=2; scoreboard.textContent='Score: '+score;}; setTimeout(()=>{checkCollision=origCheck;},ms);}
+
+// Loop principal
+function gameLoop(){
+  if(!gameRunning) return;
+  if(keys.up) fly(15);
+  if(keys.down) fly(-15);
+  if(keys.left) move(-10);
+  if(keys.right) move(10);
+  if(keys.space) shoot();
+  requestAnimationFrame(gameLoop);
+}
+
+// Fundo galáxias
+function spawnGalaxies(){
+  if(!gameRunning) return;
+  const star=document.createElement('div');
+  star.textContent=['🌌','☄️','✨'][Math.floor(Math.random()*3)];
+  star.classList.add('entity');
+  star.style.left=game.offsetWidth+'px';
+  star.style.bottom=Math.random()*game.offsetHeight+'px';
+  star.style.fontSize=(10+Math.random()*20)+'px';
+  game.appendChild(star);
+  let move=setInterval(()=>{
+    let left=parseInt(star.style.left);
+    if(left<-50){ clearInterval(move); game.removeChild(star);}
+    else star.style.left=(left-1)+'px';
+  },30); intervals.push(move);
+}
+
+// Iniciar Jogo
+startBtn.onclick = ()=>{
+  menu.style.display='none';
+  game.style.display='block';
+  gameRunning=true;
+  score=0; scoreboard.textContent='Score: 0';
+  simbaBottom=50; simbaLeft=50; simba.style.bottom='50px'; simba.style.left='50px';
+  // Spawn
+  intervals.push(setInterval(spawnEntity,1200));
+  intervals.push(setInterval(spawnGalaxies,600));
+  gameLoop();
+}
+
+// Encerrar Jogo
+exitBtn.onclick = endGame;
+function endGame(){
+  gameRunning=false;
+  game.style.display='none';
+  menu.style.display='none';
+  gameover.style.display='flex';
+  finalScore.textContent='Sua pontuação: '+score;
+  intervals.forEach(i=>clearInterval(i));
+  bullets.forEach(b=>{if(b.parentNode) game.removeChild(b);});
+  entities.forEach(e=>{if(e.parentNode) game.removeChild(e);});
+  bullets=[]; entities=[]; intervals=[];
+}
+
+// Reiniciar
+restartBtn.onclick = ()=>{
+  gameover.style.display='none';
+  menu.style.display='block';
+}
+</script>
+</body>
+</html>

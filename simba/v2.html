@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Simba 18.0 Turbo Universe – Voo & Tiro</title>
+<style>
+body,html{margin:0;padding:0;overflow:hidden;font-family:sans-serif;background:black;color:white;}
+#game{position:relative;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(to top,#00111a,#220033);}
+#simba{position:absolute;bottom:50px;left:50px;font-size:50px;transition:bottom 0.05s,left 0.05s;}
+.entity{position:absolute;font-size:40px;transition:filter 0.1s;}
+.popup{position:absolute;background:rgba(0,0,0,0.7);color:#fff;padding:5px 10px;border-radius:5px;font-size:16px;animation:fadeOut 1.5s forwards;}
+@keyframes fadeOut{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-40px);}}
+#scoreboard{position:absolute;top:10px;left:10px;font-size:24px;}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="simba">🦁🚀</div>
+  <div id="scoreboard">Score: 0</div>
+</div>
+<script>
+const game=document.getElementById('game');
+const simba=document.getElementById('simba');
+const scoreboard=document.getElementById('scoreboard');
+
+let simbaBottom=50, simbaLeft=50, isJumping=false, score=0;
+let bullets=[];
+
+// Tesouros educativos
+const treasures=[
+"∫ x² dx = x³/3 + C","E = mc²","Filipenses 4:13 💪",
+"💡 Pausas curtas ajudam","x = (-b ± √(b²-4ac))/2a",
+"Não desista!","A = πr²","🦖 Dinossauros incríveis"
+];
+
+// Controles
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft') move(-20);
+  if(e.key==='ArrowRight') move(20);
+  if(e.key==='w'||e.key==='ArrowUp') fly(10);
+  if(e.key==='s'||e.key==='ArrowDown') fly(-10);
+  if(e.key===' ') shoot();
+});
+
+// Movimento horizontal
+function move(val){simbaLeft+=val;if(simbaLeft<0) simbaLeft=0;if(simbaLeft>game.offsetWidth-50) simbaLeft=game.offsetWidth-50;simba.style.left=simbaLeft+'px';}
+
+// Voo vertical
+function fly(val){simbaBottom+=val;if(simbaBottom<0) simbaBottom=0;if(simbaBottom>game.offsetHeight-50) simbaBottom=game.offsetHeight-50;simba.style.bottom=simbaBottom+'px';}
+
+// Tiro
+function shoot(){
+  const bullet=document.createElement('div'); bullet.classList.add('entity'); bullet.textContent='⚡';
+  bullet.style.left=simbaLeft+50+'px'; bullet.style.bottom=simbaBottom+20+'px';
+  game.appendChild(bullet); bullets.push(bullet);
+  let intv=setInterval(()=>{
+    let left=parseInt(bullet.style.left);
+    if(left>game.offsetWidth){ clearInterval(intv); game.removeChild(bullet); bullets=bullets.filter(b=>b!==bullet);}
+    else{ bullet.style.left=(left+15)+'px'; checkBulletCollision(bullet,intv);}
+  },20);
+}
+
+// Spawn entidades
+function spawnEntity(){
+  const e=document.createElement('div'); e.classList.add('entity');
+  let type=Math.random()<0.5?'obstacle':'treasure'; e.dataset.type=type;
+  e.style.left=game.offsetWidth+'px'; e.style.bottom=(50+Math.random()*200)+'px';
+  if(type==='obstacle') e.textContent=['🌵','🦖','🛰️'][Math.floor(Math.random()*3)];
+  else e.textContent=treasures[Math.floor(Math.random()*treasures.length)];
+  game.appendChild(e);
+  let speed=3+Math.random()*2;
+  let moveInt=setInterval(()=>{
+    let left=parseInt(e.style.left);
+    if(left<-50){ clearInterval(moveInt); game.removeChild(e);}
+    else { e.style.left=(left-speed)+'px'; detectProximity(e); checkCollision(e,moveInt);}
+  },20);
+}
+
+// Sensor de proximidade
+function detectProximity(entity){
+  let simbaRect=simba.getBoundingClientRect(), entRect=entity.getBoundingClientRect();
+  let dx=Math.abs((simbaRect.left+simbaRect.right)/2-(entRect.left+entRect.right)/2);
+  if(dx<100) entity.style.filter='brightness(1.5)'; else entity.style.filter='brightness(1)';
+}
+
+// Colisão Simba-entidade
+function checkCollision(entity,intv){
+  let simbaRect=simba.getBoundingClientRect(), entRect=entity.getBoundingClientRect();
+  if(!(simbaRect.right<entRect.left || simbaRect.left>entRect.right || simbaRect.bottom<entRect.top || simbaRect.top>entRect.bottom)){
+    if(entity.dataset.type==='obstacle') showPopup('💥 Cuidado!');
+    else { score++; showPopup('🎉 Tesouro: '+entity.textContent);}
+    scoreboard.textContent='Score: '+score;
+    clearInterval(intv); game.removeChild(entity);
+  }
+}
+
+// Colisão tiro-entidade
+function checkBulletCollision(bullet,intv){
+  const entities=document.querySelectorAll('.entity');
+  entities.forEach(e=>{
+    if(e.dataset.type && e!==bullet){
+      let bRect=bullet.getBoundingClientRect(), eRect=e.getBoundingClientRect();
+      if(!(bRect.right<eRect.left || bRect.left>eRect.right || bRect.bottom<eRect.top || bRect.top>eRect.bottom)){
+        if(e.dataset.type==='obstacle') showPopup('💥 Obstáculo destruído!');
+        else { score++; showPopup('🎯 Tesouro coletado!');}
+        scoreboard.textContent='Score: '+score;
+        clearInterval(intv); game.removeChild(bullet); bullets=bullets.filter(b=>b!==bullet);
+        if(e.parentNode) game.removeChild(e);
+      }
+    }
+  });
+}
+
+// Pop-ups leves
+function showPopup(text){
+  const p=document.createElement('div'); p.classList.add('popup');
+  p.style.left=(50+Math.random()*200)+'px'; p.style.bottom=(100+Math.random()*150)+'px'; p.textContent=text;
+  game.appendChild(p); setTimeout(()=>game.removeChild(p),1500);
+}
+
+// Loop spawn entidades
+setInterval(spawnEntity,1200);
+
+// Fundo leve de galáxias
+setInterval(()=>{
+  const star=document.createElement('div');
+  star.textContent=['🌌','☄️','✨'][Math.floor(Math.random()*3)];
+  star.classList.add('entity');
+  star.style.left=game.offsetWidth+'px';
+  star.style.bottom=Math.random()*game.offsetHeight+'px';
+  star.style.fontSize=(10+Math.random()*20)+'px';
+  game.appendChild(star);
+  let move=setInterval(()=>{
+    let left=parseInt(star.style.left);
+    if(left<-50){ clearInterval(move); game.removeChild(star);}
+    else star.style.left=(left-1)+'px';
+  },30);
+},600);
+</script>
+</body>
+</html>

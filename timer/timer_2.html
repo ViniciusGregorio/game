@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>MISSION CONTROL TIMER</title>
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle, #020024, #000000);
+  color: #00ffe1;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#title {
+  font-size: 20px;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+#timer {
+  font-size: 110px;
+  text-shadow: 0 0 20px #00ffe1, 0 0 40px #00ffe1;
+}
+
+#status {
+  margin-top: 10px;
+  font-size: 18px;
+  color: #00ffaa;
+}
+
+#cycle {
+  margin-top: 5px;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+input, button {
+  margin-top: 10px;
+  padding: 10px;
+  background: black;
+  border: 1px solid #00ffe1;
+  color: #00ffe1;
+}
+
+button:hover {
+  background: #00ffe1;
+  color: black;
+}
+
+.warning {
+  animation: blink 0.3s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0.2; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="title">MISSION CONTROL</div>
+<div id="timer">25:00</div>
+<div id="status">AGUARDANDO INÍCIO</div>
+<div id="cycle">CICLO: 0</div>
+
+<input type="number" id="work" placeholder="Trabalho (min)" value="25">
+<input type="number" id="break" placeholder="Pausa (min)" value="5">
+<button onclick="startPomodoro()">INICIAR MISSÃO</button>
+
+<script>
+let time = 0;
+let mode = "work";
+let cycle = 0;
+let interval;
+
+function speak(text) {
+  let msg = new SpeechSynthesisUtterance(text);
+  msg.pitch = 0.5;
+  msg.rate = 1;
+  speechSynthesis.speak(msg);
+}
+
+function updateDisplay() {
+  let min = Math.floor(time / 60);
+  let sec = time % 60;
+  document.getElementById("timer").innerText =
+    String(min).padStart(2, '0') + ":" +
+    String(sec).padStart(2, '0');
+}
+
+function startPomodoro() {
+  clearInterval(interval);
+
+  cycle = 1;
+  mode = "work";
+  time = document.getElementById("work").value * 60;
+
+  document.getElementById("status").innerText = "FOCO TOTAL";
+  document.getElementById("cycle").innerText = "CICLO: " + cycle;
+
+  speak("Missão iniciada");
+
+  interval = setInterval(tick, 1000);
+}
+
+function tick() {
+  updateDisplay();
+  time--;
+
+  // CONTAGEM FINAL TENSA
+  if (time <= 10 && time > 0) {
+    document.getElementById("timer").classList.add("warning");
+    speak(time.toString());
+  }
+
+  if (time < 0) {
+    switchMode();
+  }
+}
+
+function switchMode() {
+  document.getElementById("timer").classList.remove("warning");
+
+  if (mode === "work") {
+    mode = "break";
+    time = document.getElementById("break").value * 60;
+
+    document.getElementById("status").innerText = "RECUPERAÇÃO";
+    speak("Pausa iniciada");
+
+    alarmMadness();
+
+  } else {
+    mode = "work";
+    cycle++;
+
+    time = document.getElementById("work").value * 60;
+
+    document.getElementById("status").innerText = "FOCO TOTAL";
+    document.getElementById("cycle").innerText = "CICLO: " + cycle;
+
+    speak("Retornando ao foco");
+
+    alarmMadness();
+  }
+}
+
+function alarmMadness() {
+  let count = 0;
+
+  let alarm = setInterval(() => {
+
+    // SOM PROGRESSIVO
+    let ctx = new (window.AudioContext || window.webkitAudioContext)();
+    let osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(200 + count * 20, ctx.currentTime);
+    osc.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => osc.stop(), 100);
+
+    // FLASH
+    document.body.style.background =
+      count % 2 === 0 ? "black" : "#001f1f";
+
+    count++;
+
+    if (count > 20) {
+      clearInterval(alarm);
+      document.body.style.background = "black";
+    }
+
+  }, 120);
+}
+</script>
+
+</body>
+</html>
