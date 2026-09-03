@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#fff7ed" />
+  <title>Prêmio do Dia 🍦</title>
+  <style>
+    :root {
+      --bg1: #fff7ed;
+      --bg2: #fdf2f8;
+      --text: #292524;
+      --muted: #78716c;
+      --card: rgba(255,255,255,.86);
+      --accent: #f97316;
+      --accent2: #ec4899;
+      --shadow: 0 24px 70px rgba(120, 53, 15, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, #ffedd5 0, transparent 32%),
+        radial-gradient(circle at 80% 15%, #fce7f3 0, transparent 34%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    .page {
+      width: min(94vw, 760px);
+      padding: 28px 0 44px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.68);
+      border: 1px solid rgba(255,255,255,.9);
+      box-shadow: 0 8px 28px rgba(0,0,0,.04);
+      color: #9a3412;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(32px, 7vw, 56px);
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      margin: 0 auto 26px;
+      max-width: 560px;
+      color: var(--muted);
+      font-size: clamp(15px, 3.8vw, 18px);
+      line-height: 1.55;
+    }
+
+    .card {
+      position: relative;
+      padding: 26px 18px 22px;
+      border-radius: 32px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.95);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .wheel-wrap {
+      width: min(78vw, 430px);
+      aspect-ratio: 1;
+      margin: 6px auto 22px;
+      position: relative;
+      filter: drop-shadow(0 18px 24px rgba(0,0,0,.14));
+    }
+
+    .pointer {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: -13px;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 17px solid transparent;
+      border-right: 17px solid transparent;
+      border-top: 34px solid #292524;
+      border-bottom: 0;
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,.18));
+    }
+
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      will-change: transform;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 50%;
+      background: white;
+      border: 8px solid white;
+    }
+
+    .hub {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: white;
+      font-size: 32px;
+      border: 6px solid #fff7ed;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 18px;
+      padding: 15px 24px;
+      font: inherit;
+      font-weight: 900;
+      font-size: 17px;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .2s ease, box-shadow .2s ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0) scale(.98); }
+    .btn:disabled { cursor: not-allowed; opacity: .58; transform: none; }
+
+    #spinBtn {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 12px 30px rgba(236, 72, 153, .25);
+      min-width: 220px;
+    }
+
+    .hint {
+      margin: 12px 0 0;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .result {
+      display: none;
+      margin: 22px auto 0;
+      padding: 20px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #fff7ed, #fdf2f8);
+      border: 1px solid #fed7aa;
+      animation: pop .45s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .result.show { display: block; }
+
+    .result .emoji {
+      font-size: 54px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .result h2 {
+      margin: 0;
+      font-size: clamp(26px, 6vw, 38px);
+      letter-spacing: -.03em;
+    }
+
+    .result p {
+      margin: 8px auto 16px;
+      max-width: 470px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    #claimBtn {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: white;
+      background: #16a34a;
+      box-shadow: 0 12px 28px rgba(22, 163, 74, .24);
+    }
+
+    .small {
+      margin-top: 10px;
+      color: #a8a29e;
+      font-size: 12px;
+    }
+
+    .confetti {
+      position: fixed;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 50;
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translate3d(var(--drift), 110vh, 0) rotate(var(--spin));
+        opacity: .95;
+      }
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: scale(.94) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+
+    .special-message {
+      display: none;
+      margin: 22px auto 0;
+      padding: 22px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      border: 1px solid #c4b5fd;
+      animation: pop .45s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .special-message.show { display: block; }
+
+    .special-message .emoji {
+      font-size: 46px;
+      margin-bottom: 8px;
+    }
+
+    .special-message h2 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 5vw, 34px);
+      letter-spacing: -.03em;
+    }
+
+    .special-message p {
+      margin: 0 auto;
+      max-width: 560px;
+      color: #57534e;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    @media (max-width: 520px) {
+      .card { border-radius: 26px; padding-inline: 12px; }
+      .hub { width: 60px; height: 60px; font-size: 27px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">🎁 surpresa do dia</div>
+    <h1>Roleta do Vini</h1>
+    <p class="subtitle">
+      Hoje o universo separou um prêmio completamente aleatório,
+      cientificamente duvidoso e emocionalmente importante.
+    </p>
+
+    <section class="card">
+      <div class="wheel-wrap" aria-label="Roleta de prêmios">
+        <div class="pointer" aria-hidden="true"></div>
+
+        <div class="wheel" id="wheel">
+          <canvas id="wheelCanvas" width="900" height="900"></canvas>
+        </div>
+
+        <div class="hub" aria-hidden="true">🎉</div>
+      </div>
+
+      <button class="btn" id="spinBtn">GIRAR A ROLETA ✨</button>
+      <p class="hint" id="hint">Vale apenas uma tentativa. A sorte está lançada 👀</p>
+
+      <div class="result" id="result">
+        <div class="emoji">🍦</div>
+        <h2>CASQUINHA!</h2>
+        <p>
+          Parabéns, campeão. Você acaba de desbloquear oficialmente
+          uma casquinha patrocinada pelo seu irmão.
+        </p>
+        <a class="btn" id="claimBtn" href="#" target="_blank" rel="noopener">
+          💬 Requisitar prêmio
+        </a>
+        <div class="small">Ao tocar, o WhatsApp abre com a mensagem pronta.</div>
+      </div>
+
+      <div class="special-message" id="specialMessage">
+        <div class="emoji">❤️</div>
+        <h2>Já tentou a sorte hoje 😄</h2>
+        <p>
+          Segundo João 3:16, Jesus te ama!<br>
+          Segundo Jeremias 2:2-3, Deus sente falta do seu povo;<br>
+          Segundo Lucas 1:37, nada ainda está perdido.
+          Segundo Atos 17:30, é esse o desejo de Deus ( e do Vini): que  a gente arrependa e viva, todos os dias.<br>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ============================
+    // PERSONALIZE AQUI 👇
+    // ============================
+    const whatsappNumber = "5511953566985";
+    // Exemplo: 5511999999999 (somente números, com 55 + DDD)
+    const whatsappMessage = "OPAAA VINI, ganhei uma casquinha hahaha 🍦";
+
+    const prizes = [
+      { label: "Abraço premium", emoji: "🫂", color: "#fde68a" },
+      { label: "Escolher o filme", emoji: "🎬", color: "#ddd6fe" },
+      { label: "Cafézinho", emoji: "☕", color: "#fed7aa" },
+      { label: "Meme premium", emoji: "😂", color: "#bfdbfe" },
+      { label: "CASQUINHA", emoji: "🍦", color: "#fbcfe8" },
+      { label: "Vale sobremesa", emoji: "🍰", color: "#bbf7d0" },
+      { label: "10 min sem zoeira", emoji: "😇", color: "#fecaca" },
+      { label: "Elogio oficial", emoji: "🏆", color: "#bae6fd" }
+    ];
+
+    const targetPrizeIndex = prizes.findIndex(p => p.label === "CASQUINHA");
+
+    const canvas = document.getElementById("wheelCanvas");
+    const ctx = canvas.getContext("2d");
+    const wheel = document.getElementById("wheel");
+    const spinBtn = document.getElementById("spinBtn");
+    const result = document.getElementById("result");
+    const hint = document.getElementById("hint");
+    const claimBtn = document.getElementById("claimBtn");
+    const specialMessage = document.getElementById("specialMessage");
+
+    const size = canvas.width;
+    const center = size / 2;
+    const radius = center - 12;
+    const arc = (Math.PI * 2) / prizes.length;
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, size, size);
+
+      prizes.forEach((prize, i) => {
+        const start = -Math.PI / 2 + i * arc;
+        const end = start + arc;
+        const middle = start + arc / 2;
+
+        // Segmento
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = prize.color;
+        ctx.fill();
+
+        // Separador
+        ctx.strokeStyle = "rgba(255,255,255,.95)";
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        // Texto
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(middle);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+
+        ctx.font = "700 34px system-ui, sans-serif";
+        ctx.fillStyle = "#292524";
+        ctx.fillText(prize.emoji + " " + prize.label, radius - 42, 0);
+        ctx.restore();
+      });
+
+      // Borda interna sutil
+      ctx.beginPath();
+      ctx.arc(center, center, radius - 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(41,37,36,.08)";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
+
+    drawWheel();
+
+    function createConfetti() {
+      const colors = ["#f97316", "#ec4899", "#22c55e", "#3b82f6", "#eab308", "#8b5cf6"];
+
+      for (let i = 0; i < 95; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti";
+        piece.style.left = Math.random() * 100 + "vw";
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (2.3 + Math.random() * 2.2) + "s";
+        piece.style.animationDelay = (Math.random() * .35) + "s";
+        piece.style.setProperty("--drift", ((Math.random() - .5) * 260) + "px");
+        piece.style.setProperty("--spin", (Math.random() * 1200 - 600) + "deg");
+        document.body.appendChild(piece);
+
+        setTimeout(() => piece.remove(), 5200);
+      }
+    }
+
+    function setupWhatsAppLink() {
+      const cleanNumber = whatsappNumber.replace(/\D/g, "");
+      const valid = /^\d{12,13}$/.test(cleanNumber);
+
+      if (valid) {
+        claimBtn.href =
+          `https://wa.me/${cleanNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+      } else {
+        claimBtn.href = "#";
+        claimBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          alert(
+            'Antes de publicar, troque "55DDDSEUNUMERO" pelo seu WhatsApp no código.'
+          );
+        });
+      }
+    }
+
+    setupWhatsAppLink();
+
+    const SPIN_STORAGE_KEY = "roletaDoViniJaGirou";
+
+    // Se ele já girou antes neste navegador, a próxima tentativa
+    // já conta como "segunda rodada", mesmo depois de atualizar a página.
+    let hasSpunBefore = localStorage.getItem(SPIN_STORAGE_KEY) === "sim";
+    let isSpinning = false;
+
+    if (hasSpunBefore) {
+      spinBtn.textContent = "GIRAR DE NOVO? 👀";
+      hint.textContent = "Tem certeza que quer desafiar a sorte outra vez?";
+    }
+
+    function showSpecialMessage() {
+      result.classList.remove("show");
+      specialMessage.classList.add("show");
+      spinBtn.textContent = "MENSAGEM PRA VOCÊ ❤️";
+      hint.textContent = "Às vezes o segundo prêmio não vem em dinheiro.";
+
+      specialMessage.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
+    }
+
+    spinBtn.addEventListener("click", () => {
+      if (isSpinning) return;
+
+      // Da segunda tentativa em diante, não gira:
+      // mostra a mensagem especial.
+      if (hasSpunBefore) {
+        showSpecialMessage();
+        return;
+      }
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+      spinBtn.textContent = "GIRANDO... 🎡";
+      hint.textContent = "Hmmm... parece que vem coisa boa por aí.";
+
+      const segmentDeg = 360 / prizes.length;
+
+      // O centro do prêmio alvo precisa terminar exatamente sob o ponteiro do topo.
+      const targetModulo = -((targetPrizeIndex + 0.5) * segmentDeg);
+
+      const safeJitter = (Math.random() - 0.5) * segmentDeg * 0.32;
+
+      const fullTurns = 7 + Math.floor(Math.random() * 3);
+      const finalRotation = fullTurns * 360 + targetModulo + safeJitter;
+
+      wheel.style.transition = "transform 5.6s cubic-bezier(.12,.72,.06,1)";
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+      setTimeout(() => {
+        hasSpunBefore = true;
+        localStorage.setItem(SPIN_STORAGE_KEY, "sim");
+
+        spinBtn.disabled = false;
+        spinBtn.textContent = "GIRAR DE NOVO? 👀";
+        hint.textContent = "A ciência não explica. Mas a casquinha é sua.";
+        result.classList.add("show");
+        createConfetti();
+        isSpinning = false;
+
+        result.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest"
+        });
+      }, 5750);
+    });
+  </script>
+</body>
+</html>
